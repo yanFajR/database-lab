@@ -1,0 +1,116 @@
+sudo apt install openjdk-8-jdk
+
+sudo mkdir -p /hadoop/download
+sudo mkdir -p /hadoop/hadoop
+sudo mkdir -p /hadoop/data/hdfs/nameNode
+sudo mkdir -p /hadoop/data/hdfs/dataNode
+
+cd /hadoop/download
+wget https://downloads.apache.org/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz
+tar -xvf hadoop-3.2.1.tar.gz
+sudo mv hadoop-3.2.1/hadoop/hadoop
+
+ssh localhost
+ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+chmod 0600 ~/.ssh/authorized_key
+ssh localhost
+
+readlink -f /usr/bin/java | sed "s:bin/java::"
+sudo nano ~/.bashrc
+
+#JAVA-PATH
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
+export PATH=/usr/lib/jvm/java-8-openjdk-amd64/bin:$PATH
+#HADOOP-PATH
+export HADOOP_HOME=/hadoop/hadoop/hadoop-3.2.1
+export PATH=$PATH:$HADOOP_HOME/bin
+export PATH=$PATH:$HADOOP_HOME/sbin
+export HADOOP_INSTALL=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_INSTALL/lib/native"
+export HADOOP_CLASSPATH=$(hadoop classpath)
+
+source ~/.bashrc
+
+sudo nano $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+CTRL+W dan ketikan export JAVA_HOME, export JAVA_HOME= /usr/lib/jvm/java-8-openjdk-amd64
+export HDFS_NAMENODE_USER=root
+export HDFS_DATANODE_USER=root
+export HDFS_SECONDARYNAMENODE_USER=root
+export YARN_RESOURCEMANAGER_USER=root
+export YARN_NODEMANAGER_USER=root
+
+
+java -version
+hadoop -version
+
+
+sudo nano $HADOOP_HOME/etc/hadoop/core-site.xml
+<property>
+	<name>fs.defaultFS</name>
+	<value>hdfs://localhost:9000</value>
+</property>
+
+sudo nano $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+<property>
+	<name>dfs.replication</name>
+	<value>1</value>
+</property>
+<property>
+	<name>dfs.namenode.name.dir</name>
+	<value>/hadoop/data/hdfs/nameNode</value>
+</property>
+<property>
+	<name>dfs.datanode.data.dir</name>
+	<value>/hadoop/data/hdfs/dataNode</value>
+</property>
+
+sudo nano $HADOOP_HOME/etc/hadoop/mapred-site.xml
+<property>
+	<name>mapreduce.framework.name</name>
+	<value>yarn</value>
+</property>
+<property>
+	<name>mapreduce.application.classpath</name>
+	<value>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*</value>
+</property>
+
+sudo nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+<property>
+	<name>yarn.nodemanager.aux-services</name>
+	<value>mapreduce_shuffle</value>
+</property>
+<property>
+	<name>yarn.nodemanager.env-whitelist</name>	
+        <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+</property>
+
+
+hdfsnamenode –format
+
+start-all.sh
+
+Buka browser akses 192.168.43.89:9870
+
+sudo mkdir -p /hadoop/WordCount 
+letakka file java
+sudo  mkdir -p /hadoop/WordCount/classes
+
+cari text input/buat
+
+hadoop fs -mkdir -p /wc/input
+
+hadoop fs -put /word.txt /wc/input/
+
+sudo javac --release 8 -classpath ${HADOOP_CLASSPATH} -d  /hadoop/WordCount/classes /hadoop/WordCount/WordCount.java
+
+sudo jar -cvf wc.jar -C /hadoop/WordCount/classes/ .
+
+hadoop jar wc.jar WordCount /wc/input/ /wc/output
+
+hadoop fs -cat /wordcount/output/*

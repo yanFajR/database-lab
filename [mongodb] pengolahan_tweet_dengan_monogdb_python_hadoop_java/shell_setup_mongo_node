@@ -1,0 +1,58 @@
+## Konfig server
+
+# Direktori configserver
+sudo mkdir -p /data/configserver1
+sudo mkdir -p /data/configserver2
+sudo mkdir -p /data/configserver3
+
+# Run
+sudo mongod --configsvr --replSet replConfig --dbpath /data/configserver1 --logpath /logs/cfg1.log --bind_ip 192.168.43.89 --port 27119
+sudo mongod --configsvr --replSet replConfig --dbpath /data/configserver2 --logpath /logs/cfg2.log --bind_ip 192.168.43.89 --port 27219
+sudo mongod --configsvr --replSet replConfig --dbpath /data/configserver3 --logpath /logs/cfg3.log --bind_ip 192.168.43.89 --port 27319
+
+# Replika
+mongo 192.168.43.89:27119
+rs.initiate()
+rs.status()
+rs.add("192.168.43.89:27219")
+rs.add("192.168.43.89:27319")
+
+## Shard server
+
+#Direktokri 
+sudo mkdir /data/shard1
+sudo mkdir /data/shard2
+sudo mkdir /data/shard3
+
+#Run	
+sudo mongod --shardsvr --replSet replShard1  --dbpath /data/shard1/ --logpath /logs/shd1.log --bind_ip 192.168.43.89 --port 27118
+sudo mongod --shardsvr --replSet replShard2  --dbpath /data/shard2/ --logpath /logs/shd2.log --bind_ip 192.168.43.172 --port 27218
+sudo mongod --shardsvr --replSet replShard3  --dbpath /data/shard3/ --logpath /logs/shd3.log --bind_ip 192.168.43.172 --port 27318
+
+#Replika
+mongo 192.168.43.89:27118
+rs.initiate()
+rs.status()
+mongo 192.168.43.172:27218
+rs.initiate()
+rs.status()
+mongo 192.168.43.172:27318
+rs.initiate()
+rs.status()
+
+##Mongos server
+
+#run
+mongos --configdb replConfig/192.168.43.89:27119,192.168.43.89:27219,192.168.43.89:27319 --logpath /logs/ngos.log --bind_ip 192.168.43.89 --port 27017
+
+#sharding
+mongo 192.168.43.89:27017
+mongos> sh.addShard( "replShard1/192.168.43.89:27118")
+mongos> sh.addShard( "replShard2/192.168.43.172:27218")
+mongos> sh.addShard( "replShard3/192.168.43.172:27318")
+sh.enableSharding("twitterdb")
+sh.shardCollection("twitterdb.twitter", { _id : "hashed"} )
+
+# mulai tracking
+db.twitter.getShardDistribution()
+		
